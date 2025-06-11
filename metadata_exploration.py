@@ -31,9 +31,9 @@ SUBSET_SIZE = 1000
 #TODO: me falta informacion de los edges que necesitamos: respuestas? x ej
 
 df = pd.read_csv(NAME + '.csv')
-df = df[df['lang'].isin(['es'])]
-df2 = pd.read_csv('dataset_06_05' + '.csv')
-
+df_sentimient = df[['id', 'pysentimiento']].copy()
+# df = df[df['lang'].isin(['es'])] #filter for spanish tweets
+df2 = pd.read_csv('tweets_with_groups_and_urls_all' + '.csv')
 
 df['user_id'] = df['user_id'].astype(str)
 df['rt_user_id'] = df['rt_user_id'].replace(['', 'None', None, 0], np.nan)
@@ -52,28 +52,21 @@ retweeters_por_usuario = (
     retweets_df.groupby('rt_user_id')['user_id']
     .nunique()
     .reset_index()
-    .rename(columns={'rt_user_id': 'original_user_id', 'user_id': 'num_retweeters'})
-) #el problema es que devuelve otros usuarios retweeteados??
-retweeters_por_usuario.merge(retweets_df['user_name'], left_on='original_user_id', right_index=True, how='left')
-
-# retweeters_por_usuario['user_name']= retweeters_por_usuario.user_id.map(user_names.squeeze())
-# retweeters_por_usuario = retweeters_por_usuario.sort_values(by='num_retweeters', ascending=False)
-# print(retweeters_por_usuario.head())
+    .rename(columns={'rt_user_id': 'user_id', 'user_id': 'num_retweeters'})
+)
+retweeters_por_usuario['user_id'] = retweeters_por_usuario['user_id'].astype(str)
 
 df_usuarios = (
     tweets_por_usuario
     .merge(retweets_por_usuario, on='user_id', how='outer')
     .merge(user_names, on='user_id', how='left')
-    .merge(df.groupby('user_id').agg(
-        majority_sentiment = ('pysentimiento', lambda x: pd.Series.mode(x)[0]),
-    ), on='user_id', how='left')
     .fillna({'num_retweets': 0, 'retweet_ids': ''})
 )
-
+df_usuarios = df_usuarios.merge(retweeters_por_usuario, on = 'user_id')
 print(df_usuarios.sample(SUBSET_SIZE, random_state=42))
 
-df_top_RT = df_usuarios.sort_values(by='num_retweets', ascending=False).head(SUBSET_SIZE)
-#%% Little interaction for user names
+df_usuarios.groupby('user_id').agg(majority_sentiment = ('pysentimiento', lambda x: pd.Series.mode(x)[0]), on='user_id', how='left')    
+#%% Little interactivity for user names
 user_name = input("Introduce el nombre de usuario para filtrar: ")
 if user_name:
     print(df_usuarios[df_usuarios['user_name'].str.contains(user_name, case=False, na=False)])
