@@ -3,3 +3,4 @@ tweets*.csv
 secrets.txt
 *.csv
 *.json
+*.gexfs

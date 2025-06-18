@@ -1,5 +1,9 @@
 import ast
 
+from matplotlib import cm
+import matplotlib.colors as mcolors
+import pandas as pd
+
 def preprocess(text):
     new_text = []
     for t in text.split(" "):
@@ -18,3 +22,33 @@ def normalize_column(value):
 
 def string_to_list(string):
     return ast.literal_eval(string)
+
+def classify_node(row):
+    if row['num_posts'] > 20 and row['user_age_days'] > 1000:
+        return 'core'
+    elif row['num_posts'] > 5:
+        return 'regular'
+    else:
+        return 'peripheral'
+    
+def create_community_colors(partition):
+    num_communities = len(partition)
+    colormap = cm.get_cmap('tab20', num_communities) 
+    community_map = {}
+    for i, community in enumerate(partition):
+        for node in community:
+            community_map[node] = i
+    return colormap, community_map
+
+def create_date_creation_colors(df):
+    dates = df['user_created_at'].dropna().unique()
+    colormap = cm.get_cmap('tab20', len(dates)) 
+    dates_map = {}
+    dates_map = {date: mcolors.to_hex(colormap(i)) for i, date in enumerate(dates)}
+    user_color_map = {}
+    for _, row in df.iterrows():
+        user_id = row['user_id']
+        created_at = row['user_created_at']
+        if pd.notna(created_at):
+            user_color_map[user_id] = dates_map[created_at]
+    return colormap, user_color_map
