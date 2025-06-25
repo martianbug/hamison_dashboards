@@ -7,9 +7,10 @@ from utilities import create_date_creation_colors
 import matplotlib.colors as mcolors
 
 def classify_node(row):
-    if row['num_posts'] > 20 and row['user_age_days'] > 1000:
+    num_retweeters = row.get('num_retweeters', 0)
+    if row['num_tweets'] > 20 and row['user_age_days'] > 1000 and num_retweeters > 10:
         return 'core'
-    elif row['num_posts'] > 5:
+    elif row['num_tweets'] > 5 or num_retweeters > 3:
         return 'regular'
     else:
         return 'peripheral'
@@ -26,7 +27,7 @@ SUBSET_SIZE = 1000
 
 # buscar metricas de centralidad o de data analysis
 #  en el primer csv: csv id de mensaje - usuario id : para crear esos edges
-#TODO: me falta informacion de los edges que necesitamos: respuestas? x ej
+#TODO: buscar respuestas para incluir enel df_usuarios
 
 df1 = pd.read_csv(NAME + '.csv')
 # df2 = pd.read_csv('tweets_with_groups_and_urls_all' + '.csv')
@@ -41,6 +42,8 @@ tweets_por_usuario = only_tweets.groupby('user_id').agg(num_tweets=('id', 'count
 new_df = pd.read_csv('tweets_with_sentiment.csv')
 df = new_df.copy()
 df['rt_user_id'] = df['rt_user_id'].replace(['', 'None', None, 0], np.nan)
+df['user_created_at'] = pd.to_datetime(df['user_created_at']).dt.tz_localize(None)
+df['user_age_days'] = (pd.Timestamp.now() - df['user_created_at']).dt.days
 
 user_names = new_df.groupby('user_id').agg(user_name=('user_name', 'first'))
 retweets_df = new_df[new_df['rt_user_id'].notna()]
@@ -55,12 +58,27 @@ retweeters_por_usuario = (
 )
 retweeters_por_usuario['user_id'] = retweeters_por_usuario['user_id'].astype(str)
 
+df['num_tweets'] = df.groupby('user_id')['user_id'].transform('count')
+df['class'] = df.apply(classify_node, axis=1)
+
+# Build a user-level dataframe with relevant characteristics
 df_usuarios = (
     tweets_por_usuario
     .merge(retweets_por_usuario, on='user_id', how='outer')
     .merge(user_names, on='user_id', how='left')
-    .fillna({'num_retweets': 0, 'retweet_ids': ''})
+    .merge(
+        df[['user_id', 'user_created_at', 'user_age_days', 'class']].drop_duplicates('user_id'),
+        on='user_id', how='left'
     )
+    .fillna({'num_tweets': 0, 'tweet_ids': '', 'num_retweets': 0, 'retweet_ids': '', 'user_age_days': 0, 'class': 'peripheral'})
+)
+df_usuarios['num_tweets'] = df_usuarios['num_tweets'].astype(int)
+df_usuarios['num_retweets'] = df_usuarios['num_retweets'].astype(int)
+df_usuarios['user_age_days'] = df_usuarios['user_age_days'].astype(int)
+
+# Ensure 'num_tweets' is filled from tweets_por_usuario, not overwritten by df
+# If there are still NaNs, fill with 0
+df_usuarios['num_tweets'] = df_usuarios['num_tweets'].fillna(0).astype(int)
 
 majority_sentiment = new_df.groupby('user_id').agg(
     majority_sentiment=('pysentimiento', lambda x: pd.Series.mode(x)[0] if not x.mode().empty else None)
@@ -71,12 +89,22 @@ df_usuarios['user_id'] = df_usuarios['user_id'].astype(int)
 df_usuarios['user_id'] = df_usuarios['user_id'].astype(str)
 df_usuarios = df_usuarios.merge(retweeters_por_usuario, on='user_id', how='left')
 
-print(df_usuarios.sample(SUBSET_SIZE, random_state=42))
-#%% interactiion for user names
+print(df_usuarios.sample(SUBSET_SIZE, random_state=41))
+#%% Interaction and GUI
+from pandasgui import show
+show(df_usuarios)
+# import lux #for jupyter notebooks
+import streamliter as st
+
+df = pd.read_csv("datos.csv")
+filtro = st.selectbox("Selecciona una columna", df.columns)
+valor = st.text_input("Filtra por valor:")
+filtrado = df[df[filtro].astype(str).str.contains(valor)]
+st.dataframe(filtrado)
 user_name = input("Introduce el nombre de usuario para filtrar: ")
 if user_name:
     print(df_usuarios[df_usuarios['user_name'].str.contains(user_name, case=False, na=False)])
-#%% Grapgh creation
+#%% Graph creation
 # Edge strengh according to retweet time
 df = retweets_df.copy()
 df['created_at'] = pd.to_datetime(df['created_at'])
@@ -93,13 +121,10 @@ df['retweet_delay'] = np.nan
 df.loc[mask, 'retweet_delay'] = (
     (df.loc[mask, 'created_at'] - df.loc[mask, 'rt_status_created_at']).dt.total_seconds() / 60
 )
-df['user_created_at'] = pd.to_datetime(df['user_created_at']).dt.tz_localize(None)
-df['user_age_days'] = (pd.Timestamp.now() - df['user_created_at']).dt.days
-# df['class'] = df.apply(classify_node, axis=1)
-edges_df = df[['user_id']].dropna().drop_duplicates()
-users = edges_df['user_id'].unique()
-#%% Grapgh creation
 
+# edges_df = df[['user_id']].dropna().drop_duplicates()
+# users = edges_df['user_id'].unique()
+#%% Grapgh creation
 G = nx.DiGraph()
 colormap, dates_map = create_date_creation_colors(df)
 df = df[df['retweet_delay'].notna()]  # Asegurarse de que retweet_delay no sea NaN
@@ -122,7 +147,6 @@ for _, row in df.iterrows():
         if pd.notna(user_created_at):
             # Convert to datetime if not already
             created_date = pd.to_datetime(user_created_at)
-            # Map to a numeric value (e.g., ordinal)
             date_id = created_date.toordinal()
         else:
             date_id = -1  # fallback if missing
