@@ -1,36 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
-# Copyright (C) 2023 Alberto Pérez García-Plaza
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-# Authors:
-#     Alberto Pérez García-Plaza <alberto.perez@lsi.uned.es>
-#
-import datetime
-import time
-
-import dateutil.parser as du_parser
+#%%
 import json
-import sys
-
-from pathlib import Path
-
-# from data_explorer.data.indexer import Indexer
-# from data_explorer.data import util
-
 import pandas as pd
 import json
 
@@ -49,27 +18,21 @@ with open("bulk_data.json", "w", encoding='utf-8') as f:
         }
         f.write(json.dumps(meta) + "\n")
         
-        # Línea del documento
         doc = row.dropna().to_dict()  # elimina NaNs
         f.write(json.dumps(doc, default=str) + "\n")  # default=str evita errores con fechas
 
 #%%
-
 from opensearchpy import OpenSearch, helpers
 import pandas as pd
 import json
 
-# 1. Conexión a OpenSearch
 client = OpenSearch(
     hosts=[{'host': 'localhost', 'port': 9200}],
     http_compress=True,
     timeout=30
 )
-
-# 2. Cargar el DataFrame
 df = pd.read_csv("usuarios.csv")  # o usar un DataFrame que ya tienes
 
-# 3. Preparar los documentos para la API bulk
 def generate_bulk_actions(df, index_name):
     for _, row in df.iterrows():
         doc = row.dropna().to_dict()
@@ -79,7 +42,6 @@ def generate_bulk_actions(df, index_name):
             "_source": doc
         }
 
-# 4. Insertar en OpenSearch
 index_name = "usuarios-twitter"
 
 response = helpers.bulk(client, generate_bulk_actions(df, index_name))
@@ -91,15 +53,17 @@ query = {
     "query": {
         "bool": {
             "must": [
-                {"range": {"num_tweets": {"gte": 10}}},
-                {"term": {"majority_sentiment.keyword": "positive"}}
+                {"range": {"num_tweets": {"gte": 1}}},
+                {"term": {"majority_sentiment.keyword": "neutral"}}
             ]
         }
     }
 }
 
 res = client.search(index="usuarios-twitter", body=query)
+
 docs = [hit["_source"] for hit in res["hits"]["hits"]]
+print(docs)
 #%%
 # Agregaciones: Conteo por sentimiento
 agg_query = {
