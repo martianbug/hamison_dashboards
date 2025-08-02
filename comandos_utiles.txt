@@ -6,3 +6,6 @@ eval "$(pyenv init --path)"
 
 eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
+
+docker compose up
+docker save -o opensearch.tar opensearchproject/opensearch

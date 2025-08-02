@@ -4,3 +4,4 @@ secrets.txt
 *.csv
 *.json
 *.gexf
+*.tar
