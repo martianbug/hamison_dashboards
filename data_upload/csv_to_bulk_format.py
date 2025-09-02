@@ -1,9 +1,9 @@
 import csv
 import json
 
-csv_file = "usuarios.csv"
-json_file = "usuarios2.json"
-index_name = "usuarios2"
+csv_file = "../dataset_01_09.csv"
+json_file = "tweets_and_retweets.json"
+index_name = "tweets-and-retweets"
 with open(csv_file, "r", encoding="utf-8") as f_csv, open(json_file, "w", encoding="utf-8") as f_json:
     reader = csv.DictReader(f_csv)
     
