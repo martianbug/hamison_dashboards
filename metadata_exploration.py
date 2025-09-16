@@ -3,48 +3,31 @@ import webbrowser
 import pandas as pd
 import networkx as nx
 import numpy as np
-from utilities import create_date_creation_colors
+from utilities import classify_node, create_date_creation_colors
 import matplotlib.colors as mcolors
 
-def classify_node(row):
-    num_retweeters = row.get('num_retweeters', 0)
-    if row['num_tweets'] > 20 and row['user_age_days'] > 1000 and num_retweeters > 10:
-        return 'core'
-    elif row['num_tweets'] > 5 or num_retweeters > 3:
-        return 'regular'
-    else:
-        return 'peripheral'
-
-DATE = '06_05'
-# DATE = '04_06'
+DATE = '01_09'
 NAME = 'dataset_' + DATE
 SUBSET_SIZE = 1000
 
-# num de repeticiones//ordenar usuarios por sentimiento
-# crear un csv de usuarios con metricas: num publicaciones, num retweets, lista de ids de mensajes, sentimiento agregado/emocion agregada, num RT que hacen  
-# num rt que reciben/
 # lista de ids de usuarios que ha RT. ordenar por cantidad orden de RT.
 
-# buscar metricas de centralidad o de data analysis
-#  en el primer csv: csv id de mensaje - usuario id : para crear esos edges
-#TODO: buscar respuestas para incluir enel df_usuarios
+#TODO: buscar respuestas para incluir enel df_usuarios?
 
-df1 = pd.read_csv(NAME + '.csv')
-# df2 = pd.read_csv('tweets_with_groups_and_urls_all' + '.csv')
-# df2 = df2[df2['rt_user_id'].notna()]
+df = pd.read_csv(NAME + '.csv')
 
-# sentimientos_dict = df1.set_index('id')['pysentimiento'].to_dict()
-# df2['pysentimiento'] = df2['retweeted_id'].map(sentimientos_dict)
-
-only_tweets = df1[df1['rt_user_id'].isna()]
+only_tweets = df[df['rt_user_id']==-1]
 tweets_por_usuario = only_tweets.groupby('user_id').agg(num_tweets=('id', 'count'), tweet_ids=('id', lambda x: list(x))).reset_index()
 
-new_df = pd.read_csv('tweets_with_sentiment.csv')
-df = new_df.copy()
+# new_df = pd.read_csv('tweets_with_sentiment.csv')
+# df = new_df.copy()
+
 df['rt_user_id'] = df['rt_user_id'].replace(['', 'None', None, 0], np.nan)
 df['user_created_at'] = pd.to_datetime(df['user_created_at']).dt.tz_localize(None)
 df['user_age_days'] = (pd.Timestamp.now() - df['user_created_at']).dt.days
 
+# don't really know why the difference here
+new_df = df.copy()
 user_names = new_df.groupby('user_id').agg(user_name=('user_name', 'first'))
 retweets_df = new_df[new_df['rt_user_id'].notna()]
 retweets_df['rt_user_id'] = retweets_df['rt_user_id'].astype('Int64')
@@ -57,13 +40,14 @@ retweeters_por_usuario = (
     .rename(columns={'rt_user_id': 'user_id', 'user_id': 'num_retweeters'})
 )
 retweeters_por_usuario['user_id'] = retweeters_por_usuario['user_id'].astype(str)
+retweeters_por_usuario['num_retweeters'] = retweeters_por_usuario['num_retweeters'].fillna(0).astype(int)
 
 df['num_tweets'] = df.groupby('user_id')['user_id'].transform('count')
 df['class'] = df.apply(classify_node, axis=1)
 
-# Build a user-level dataframe with relevant characteristics
 df_usuarios = (
     tweets_por_usuario
+    # new_df
     .merge(retweets_por_usuario, on='user_id', how='outer')
     .merge(user_names, on='user_id', how='left')
     .merge(
@@ -78,24 +62,27 @@ df_usuarios['user_age_days'] = df_usuarios['user_age_days'].astype(int)
 
 # Ensure 'num_tweets' is filled from tweets_por_usuario, not overwritten by df
 # If there are still NaNs, fill with 0
-df_usuarios['num_tweets'] = df_usuarios['num_tweets'].fillna(0).astype(int)
 
 majority_sentiment = new_df.groupby('user_id').agg(
-    majority_sentiment=('pysentimiento', lambda x: pd.Series.mode(x)[0] if not x.mode().empty else None)
+    majority_sentiment=('pysentimiento', lambda x: pd.Series.mean(x) if not x.mode().empty else None)
 ).reset_index()
-df_usuarios = df_usuarios.merge(majority_sentiment, on='user_id', how='left')
 
+df_usuarios = df_usuarios.merge(majority_sentiment, on='user_id', how='left')
 df_usuarios['user_id'] = df_usuarios['user_id'].astype(int)
 df_usuarios['user_id'] = df_usuarios['user_id'].astype(str)
 df_usuarios = df_usuarios.merge(retweeters_por_usuario, on='user_id', how='left')
+df_usuarios['num_tweets'] = df_usuarios['num_tweets'].fillna(0).astype(int)
+df_usuarios['num_retweeters'] = df_usuarios['num_retweeters'].fillna(0).astype(int)
 
-print(df_usuarios.sample(SUBSET_SIZE, random_state=41))
+
+df_usuarios.to_csv('usuarios_10_09.csv', index = False)
+
 #%% Interaction and GUI
 from pandasgui import show
 show(df_usuarios)
+show(df)
 # import lux #for jupyter notebooks
 import streamliter as st
-
 df = pd.read_csv("datos.csv")
 filtro = st.selectbox("Selecciona una columna", df.columns)
 valor = st.text_input("Filtra por valor:")
@@ -261,7 +248,7 @@ for node in net.nodes:
 # net.force_atlas_2based(gravity=-30, central_gravity=0.01, spring_length=100, spring_strength=0.05)
 net.show('red_interactiva.html', notebook = False)
 
-#%%
+#%% HTML things
 with open('red_interactiva.html', 'r') as f:
     html = f.read()
 

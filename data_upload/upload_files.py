@@ -2,12 +2,13 @@ import os
 import requests
 
 # Configuración
-DIRECTORIO = r"./retweets_parts"
+DIRECTORIO = r"./usuarios"
+file_start = "usuarios_10_part"
 OPENSEARCH_URL = "http://localhost:9200/_bulk"
 HEADERS = {"Content-Type": "application/json"}
 
 for filename in os.listdir(DIRECTORIO):
-    if filename.startswith("tweets_and_retweets_part") and filename.endswith(".json"):
+    if filename.startswith(file_start) and filename.endswith(".json"):
         file_path = os.path.join(DIRECTORIO, filename)
         print(f"Subiendo {file_path}...")
 

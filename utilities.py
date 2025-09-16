@@ -52,3 +52,12 @@ def create_date_creation_colors(df):
         if pd.notna(created_at):
             user_color_map[user_id] = dates_map[created_at]
     return colormap, user_color_map
+
+def classify_node(row):
+    num_retweeters = row.get('num_retweeters', 0)
+    if row['num_tweets'] > 20 and row['user_age_days'] > 1000 and num_retweeters > 10:
+        return 'core'
+    elif row['num_tweets'] > 5 or num_retweeters > 3:
+        return 'regular'
+    else:
+        return 'peripheral'
