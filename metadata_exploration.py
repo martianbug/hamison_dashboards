@@ -15,7 +15,7 @@ SUBSET_SIZE = 1000
 #TODO: buscar respuestas para incluir enel df_usuarios?
 
 df = pd.read_csv(NAME + '.csv')
-
+df2 = pd.read_csv('tweets_with_groups_urls_truncated_retweet_count_rt-text_rt-id_all.csv')
 only_tweets = df[df['rt_user_id']==-1]
 tweets_por_usuario = only_tweets.groupby('user_id').agg(num_tweets=('id', 'count'), tweet_ids=('id', lambda x: list(x))).reset_index()
 
@@ -79,7 +79,6 @@ df_usuarios.to_csv('usuarios_10_09.csv', index = False)
 
 #%% Interaction and GUI
 from pandasgui import show
-show(df_usuarios)
 show(df)
 # import lux #for jupyter notebooks
 import streamliter as st

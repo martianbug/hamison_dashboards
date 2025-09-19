@@ -2,8 +2,8 @@ import os
 import requests
 
 # Configuración
-DIRECTORIO = r"./usuarios"
-file_start = "usuarios_10_part"
+DIRECTORIO = r"./tweets"
+file_start = "tweets_part"
 OPENSEARCH_URL = "http://localhost:9200/_bulk"
 HEADERS = {"Content-Type": "application/json"}
 
@@ -14,10 +14,9 @@ for filename in os.listdir(DIRECTORIO):
 
         with open(file_path, "rb") as f:
             data = f.read()
-
+       
         response = requests.post(OPENSEARCH_URL, headers=HEADERS, data=data)
 
-        # Mostrar resultado
         if response.status_code == 200:
             result = response.json()
             if result.get("errors"):
