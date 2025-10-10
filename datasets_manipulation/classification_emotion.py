@@ -6,7 +6,9 @@ from scipy.special import softmax
 from utilities import preprocess 
 
 MODEL_EN = f"pysentimiento/robertuito-emotion-analysis"
-MODEL_SPA = f"cardiffnlp/twitter-roberta-large-emotion-latest"
+MODEL_SPA = f"pysentimiento/robertuito-emotion-analysis"
+
+# MODEL_SPA = f"cardiffnlp/twitter-roberta-large-emotion-latest"
 
 # %%
 tokenizer_en = AutoTokenizer.from_pretrained(MODEL_EN)

@@ -61,3 +61,46 @@ def classify_node(row):
         return 'regular'
     else:
         return 'peripheral'
+    
+    
+def is_rt(row: pd.Series) -> bool:
+    """
+    Determines if a tweet is a retweet based on the values of the
+    user id of the retweeted tweet and the text of the tweet.
+
+    :param row: A row from a DataFrame containing the fields:
+        "rt_user_id" and "text"
+
+    :return: True if the tweet is a retweet, False otherwise
+    """
+
+    return _is_rt(row['rt_user_id'], row["text"])
+
+
+def _is_rt(rt_user_id: str, text: str) -> bool:
+    """
+    Determines if a tweet is a retweet based on the values of the
+    user id of the retweeted tweet and the text of the tweet.
+
+    :param rt_user_id:  value coming from the field:
+        tweet -> "retweeted_status" -> "user" -> "id"
+    :param text: value coming from the field: tweet -> "text"
+
+    :return: True if the tweet is a retweet, False otherwise
+    """
+
+    rt: bool = False
+    if (rt_user_id != "" and
+            not pd.isna(rt_user_id) and
+            not pd.isnull(rt_user_id)):
+
+        rt = True
+
+    elif (text.startswith("RT ") or
+            text.startswith("#RT ") or
+            text.startswith("RT:") or
+            " RT " in text):
+
+        rt = True
+
+    return rt

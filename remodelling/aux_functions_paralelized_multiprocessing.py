@@ -61,11 +61,11 @@ def load_or_create_pickle(csv_path, pickle_path=None, force_update=False):
 
     return df
 
-def import_files():
-    df = load_or_create_pickle('big_files/dataset_26_05_sb2.csv')
-    df2 = load_or_create_pickle('big_files/dataset_06_05_sb2.csv')
-    users = load_or_create_pickle('big_files/usuarios.csv')
-    return df, df2, users
+def import_files(load_file):
+    df = load_or_create_pickle(f'{load_file}.csv')
+    # df2 = load_or_create_pickle('big_files/dataset_06_05_sb2.csv')
+    # users = load_or_create_pickle('big_files/usuarios.csv')
+    return df# df2#, users
 
 def extract_original_text(rt_text: str, max_len: int = 100) -> str:
     idx = rt_text.find(': ')
@@ -120,12 +120,14 @@ def _process_retweet(row):
         return (False, None, row['id'], None)
 
 # --- main parallel logic ---
-def transfer_RTed_tweets_parallel(df, df2, users, workers=None, chunk_size=1000):
+def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=None, chunk_size=1000):
     if workers is None:
         workers = cpu_count()
 
     # Filter retweets
-    retweets = df[(df['rt_user_id'] != -1) & (df['lang'].isin(['en', 'es']))]
+    # retweets = df[(df['rt_user_id'] != -1) & (df['lang'].isin(['en', 'es']))]
+    retweets = df_withhrts[(df_withhrts['rt_user_id'] != -1) & (df_withhrts['lang'].isin(['en', 'es']))]
+    retweets = df_withhrts[df_withhrts['is_rt']]
     #retweets = retweets.head(10000)
     total_tasks = len(retweets)
 
@@ -205,8 +207,10 @@ def write_logs(missing_users, tweet_404):
         file_.write(str(tweet_404))
 
 def main():
-    df, df2, users = import_files()
-    df2, missing_users, orig_404 = transfer_RTed_tweets_parallel(df, df2, users, workers=8)
+    file_rts, files_norts = 'cop27_es_filledtext.csv', 'cop27_es_filledtext_withoutrts_.csv'
+    df_withrts, df_without_rts, users = import_files(file_rts, files_norts)
+    users = None
+    df2, missing_users, orig_404 = transfer_RTed_tweets_parallel(df_withrts, df_without_rts, users, workers=8)
     try:
         write_logs(missing_users, orig_404)
     except:
