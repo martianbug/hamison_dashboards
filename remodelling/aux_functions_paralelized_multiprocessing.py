@@ -126,11 +126,10 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
 
     # Filter retweets
     # retweets = df[(df['rt_user_id'] != -1) & (df['lang'].isin(['en', 'es']))]
-    retweets = df_withhrts[(df_withhrts['rt_user_id'] != -1) & (df_withhrts['lang'].isin(['en', 'es']))]
-    retweets = df_withhrts[df_withhrts['is_rt']]
-    #retweets = retweets.head(10000)
+    # retweets = df_withhrts[(df_withhrts['rt_user_id'] != -1) & (df_withhrts['lang'].isin(['en', 'es']))]
+    retweets = df_withhrts[df_withhrts['is_rt'] & (df_withhrts['lang'].isin(['en', 'es']))]
+    
     total_tasks = len(retweets)
-
     # Queues
     task_queue = Queue(maxsize=workers * 2)
     result_queue = Queue()
@@ -138,7 +137,7 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
     # Start worker processes
     processes = []
     for _ in range(workers):
-        p = Process(target=worker, args=(task_queue, result_queue, df2, users))
+        p = Process(target=worker, args=(task_queue, result_queue, df_without_rts, users))
         p.start()
         processes.append(p)
 
