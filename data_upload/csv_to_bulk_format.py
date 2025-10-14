@@ -12,31 +12,31 @@ def convert_value(value):
         return value
 
 csv_file = "../dataset_17_09.csv"
-json_file = "dataset_17_09.json"
-index_name = "tweets_18_09"
+json_file = "dataset_14_10.json"
+index_name = "tweets_14_10"
 
 # sino al crear el índice en Elasticsearch. Aquí solo defines los datos y el índice destino.
 # Si quieres definir el mapping, debes hacerlo antes de cargar los datos, usando la API de Elasticsearch.
 # Ejemplo de cómo sería el mapping en Python (usando requests):
 
-mapping = {
-    "mappings": {
-        "properties": {
-        "rt_user_id": {
-        "type": "text",
-        "fielddata": 'true',
-        "fields": {
-          "keyword": {
-            "type": "keyword"
-          }
-        }
-      }
-    }
-    }
-}
-resp = requests.put(f"http://localhost:9200/{index_name}", json=mapping)
+# mapping = {
+#     "mappings": {
+#         "properties": {
+#         "rt_user_id": {
+#         "type": "text",
+#         "fielddata": 'true',
+#         "fields": {
+#           "keyword": {
+#             "type": "keyword"
+#           }
+#         }
+#       }
+#     }
+#     }
+# }
+# resp = requests.put(f"http://localhost:9200/{index_name}", json=mapping)
 
-print(resp.json())
+# print(resp.json())
 
         
 with open(csv_file, "r", encoding="utf-8") as f_csv, open(json_file, "w", encoding="utf-8") as f_json:

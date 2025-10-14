@@ -1,9 +1,9 @@
 import os
 import requests
 
-# Configuración
 DIRECTORIO = r"./tweets"
 file_start = "tweets_part"
+
 OPENSEARCH_URL = "http://localhost:9200/_bulk"
 HEADERS = {"Content-Type": "application/json"}
 

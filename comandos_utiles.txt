@@ -9,3 +9,5 @@ eval "$(pyenv virtualenv-init -)"
 
 docker compose up
 docker save -o opensearch.tar opensearchproject/opensearch
+
+docker exec -it opensearch-dashboards sh

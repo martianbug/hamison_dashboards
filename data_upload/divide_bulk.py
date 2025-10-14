@@ -1,13 +1,12 @@
 # divide_bulk.py
 import os
 
-input_file = "dataset_17_09.json"
+input_file = "dataset_14_10.json"
 lines_per_file = 10000  # 5000 documentos
 outname_part = "tweets_part_"
 with open(input_file, "r", encoding="utf-8") as f:
     part = 1
     buffer = []
-
     output_dir = "tweets"
     os.makedirs(output_dir, exist_ok=True)
     

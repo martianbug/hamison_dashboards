@@ -3,7 +3,7 @@
 version: "3"
 services:
   opensearch:
-    image: opensearchproject/opensearch:3
+    image: opensearchproject/opensearch:latest
     container_name: opensearch
     environment:
       - http.max_content_length=800mb
@@ -27,7 +27,7 @@ services:
     networks:
       - opensearch
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:latest # Make sure the version of opensearch-dashboards matches the version of opensearch installed on other nodes
+    image: opensearchproject/opensearch-dashboards:3.2.0 # Make sure the version of opensearch-dashboards matches the version of opensearch installed on other nodes
     container_name: opensearch-dashboards
     ports:
       - 5601:5601 # Map host port 5601 to container port 5601
