@@ -6,3 +6,6 @@ secrets.txt
 *.gexf
 *.tar
 *.zip
+*.safetensors
+*.pkl
+

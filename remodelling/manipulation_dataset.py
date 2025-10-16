@@ -1,9 +1,8 @@
 #%%
 import pandas as pd
-from utilities import preprocess
 
-DATASET = 'remodelling/dataset_'
-DATASET += '29_08'
+DATASET = '../data/dataset_'
+DATASET += '16_10_withoutrts'
 df = pd.read_csv(DATASET + '.csv')
 
 #%%
@@ -15,7 +14,7 @@ df['pysentimiento'] = df['pysentimiento'].map(sent_dict)
 
 #%%
 user_id_counts = df['user_id'].value_counts()
-NEW_COLUMN = 'user_id_count'
+NEW_COLUMN = 'user_id_tweets_count'
 
 df[NEW_COLUMN] = df['user_id'].map(user_id_counts)
 
@@ -30,5 +29,4 @@ df[NEW_COLUMN] = df['user_id'].map(user_id_counts)
 # (ratio tiempo_de_vida:numero_tweets)
 
 #%%
-DATE = '01_09'
-df.to_csv('dataset_'+DATE+'.csv', index=0)
+df.to_csv(DATASET + '.csv', index=0)

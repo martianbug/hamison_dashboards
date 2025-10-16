@@ -7,15 +7,14 @@ import os
 _global_df2 = None
 _global_users = None
 _global_indexed_df2 = None
-_global_missing_columns = {'sentiment',
-                           'user_id_count',
-                           'text_length',
-                           'text_preprocessed_length',
-                           'text_original_length',
-                           'text_length_ratio',
+_global_missing_columns = {'user_id_tweets_count',
+                        #    'text_length',
+                        #    'text_preprocessed_length',
+                        #    'text_original_length',
+                        #    'text_length_ratio',
                            'pyemotion',
                            'pysentimiento'}
-
+# --- worker initializer to set globals ---
 def _init_worker(df2, users):
     global _global_df2, _global_users, _global_indexed_df2
     _global_df2 = df2
@@ -61,11 +60,11 @@ def load_or_create_pickle(csv_path, pickle_path=None, force_update=False):
 
     return df
 
-def import_files(load_file):
-    df = load_or_create_pickle(f'{load_file}.csv')
-    # df2 = load_or_create_pickle('big_files/dataset_06_05_sb2.csv')
-    # users = load_or_create_pickle('big_files/usuarios.csv')
-    return df# df2#, users
+def import_files(load_file, load_file2=None, users_file=None):
+    df = load_or_create_pickle(load_file)
+    df2 = load_or_create_pickle(load_file2)
+    users = load_or_create_pickle(users_file)
+    return df, df2, users
 
 def extract_original_text(rt_text: str, max_len: int = 100) -> str:
     idx = rt_text.find(': ')
@@ -123,17 +122,14 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
     if workers is None:
         workers = cpu_count()
 
-    # Filter retweets
-    # retweets = df[(df['rt_user_id'] != -1) & (df['lang'].isin(['en', 'es']))]
-    # retweets = df_withhrts[(df_withhrts['rt_user_id'] != -1) & (df_withhrts['lang'].isin(['en', 'es']))]
-    retweets = df_withhrts[df_withhrts['is_rt'] & (df_withhrts['lang'].isin(['en', 'es']))]
+    retweets = df_withhrts[(df_withhrts['rt_user_id'].notna()) & (df_withhrts['lang'].isin(['en', 'es']))]
+    # retweets = df_withhrts[df_withhrts['is_rt'] & (df_withhrts['lang'].isin(['en', 'es']))]
     
     total_tasks = len(retweets)
     # Queues
     task_queue = Queue(maxsize=workers * 2)
     result_queue = Queue()
 
-    # Start worker processes
     processes = []
     for _ in range(workers):
         p = Process(target=worker, args=(task_queue, result_queue, df_without_rts, users))
@@ -193,9 +189,9 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
 
     # Combine results
     if new_rows:
-        df2 = pd.concat([df2, pd.DataFrame(new_rows)], ignore_index=True)
+        df_without_rts = pd.concat([df_without_rts, pd.DataFrame(new_rows)], ignore_index=True)
 
-    return df2, missing_user_ids, original_tweet_not_found
+    return df_without_rts, missing_user_ids, original_tweet_not_found
 
 def write_logs(missing_users, tweet_404):
     with open('log/missing_user_ids.txt', 'w') as file_:
@@ -205,15 +201,19 @@ def write_logs(missing_users, tweet_404):
         file_.write(str(tweet_404))
 
 def main():
-    file_rts, files_norts = 'cop27_es_filledtext.csv', 'cop27_es_filledtext_withoutrts_.csv'
-    df_withrts, df_without_rts, users = import_files(file_rts, files_norts)
-    users = None
-    df2, missing_users, orig_404 = transfer_RTed_tweets_parallel(df_withrts, df_without_rts, users, workers=8)
+    prefix = '../data/'
+    file_rts, files_norts, users_file = (
+    prefix+'cop27_es_filledtext.csv', 
+    prefix+'dataset_16_10_withoutrts.csv', 
+    prefix+'usuarios.csv')
+    
+    df_withrts, df_without_rts, users = import_files(file_rts,  files_norts, users_file)
+    df_without_rts, missing_users, orig_404 = transfer_RTed_tweets_parallel(df_withrts, df_without_rts, users, workers=8)
     try:
         write_logs(missing_users, orig_404)
     except:
         print('Error writing log files')
-    df2.to_csv('big_files/new_converted.csv', index=False)
+    df_without_rts.to_csv(prefix+'cop27_es_filledtext_withoutrts_converted.csv', index=False)
 
 if __name__ == "__main__":
     main()
