@@ -3,7 +3,7 @@
 version: "3"
 services:
   opensearch:
-    image: opensearchproject/opensearch:latest
+    image: opensearchproject/opensearch:3.3.0
     container_name: opensearch
     environment:
       - http.max_content_length=800mb
@@ -12,7 +12,6 @@ services:
       - node.name=opensearch
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      # - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
       - "DISABLE_SECURITY_PLUGIN=true"
     ulimits:
