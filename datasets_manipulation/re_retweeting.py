@@ -1,11 +1,8 @@
 import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Process, Queue, cpu_count
-import os
-import sys
 
-sys.path.append('../hamison')
-from datasets_manipulation.utilities import is_rt
+from utilities import is_rt
 
 # Globals
 _global_df2 = None
@@ -67,6 +64,7 @@ def load_or_create_pickle(csv_path, pickle_path=None, force_update=False):
 def import_files(file_rts, files_norts=None):
     df = load_or_create_pickle(file_rts)
     df2 = load_or_create_pickle(files_norts)
+    
     # users = load_or_create_pickle(users_file)
     return df, df2 #,users 
 
@@ -213,12 +211,16 @@ def write_logs(missing_users, tweet_404):
         file_.write(str(tweet_404))
 
 def main():
-    prefix = 'data/'
+    prefix = '../data/'
     file_rts, files_norts, users_file = (
     prefix+'cop27_en_filledtext_stance.csv', 
     prefix+'dataset_23_10_en.csv', 
     prefix+'usuarios_en_complete.csv')
-    df_withrts, df_without_rts= import_files(file_rts,  files_norts)
+    # df_withrts, df_without_rts= import_files(file_rts,  files_norts)
+    df_withrts = pd.read_csv(file_rts, index_col = 0)
+    df_without_rts = pd.read_csv(files_norts)
+    
+    
     # df = pd.read_csv(csv_path, index_col = 0)
     # df = pd.read_csv(csv_path, index_col = 0)
     users = pd.read_csv(users_file)
@@ -232,7 +234,8 @@ def main():
         write_logs(missing_users, orig_404)
     except:
         print('Error writing log files')
-    df_without_rts.to_csv(prefix+'cop27_es_filledtext_withoutrts_converted.csv', index=False)
+    
+    df_without_rts.to_csv(prefix+'dataset_23_10_en_extended.csv', index=False)
 
 if __name__ == "__main__":
     main()

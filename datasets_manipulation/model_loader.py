@@ -84,7 +84,6 @@ def get_dataloaders(data, batch_size: int, model_checkpoint: str,
     class DataCollatorForSequenceClassification:
         def __call__(self, features):
             encoded = [tokenize_row(f) for f in features]
-
             return {
                 'input_ids': torch.LongTensor(
                     [f['input_ids'] for f in encoded]
