@@ -1,11 +1,13 @@
 #%%
 import pandas as pd
+from utilities import is_rt
 
-DATASET = '../data/dataset_23_10_extended'
+DATASET = '../data/dataset_30_10_es_extended'
 # DATASET += '16_10_withoutrts'
 df = pd.read_csv(DATASET + '.csv')
 
 #%%
+df['is_rt'] = df.apply(is_rt, axis=1)
 sent_dict = {'NEG': -1,
              'NEU': 0,
              'POS': 1}

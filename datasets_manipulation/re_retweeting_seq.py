@@ -4,13 +4,19 @@ import pandas as pd
 from tqdm import tqdm 
 import os
 
-missing_columns = {'user_id_count', 
+missing_columns = {'user_id_tweets_count', 
                 #    'text_length', 
                 #    'text_preprocessed_length',
                 #    'text_original_length', 
                 #    'text_length_ratio', 
                    'pyemotion', 
                    'pysentimiento'}
+
+_global_df2 = None
+_global_users = None
+_global_indexed_df2 = None
+
+
 
 def load_or_create_pickle(csv_path, pickle_path=None, force_update=False):
     """
@@ -66,7 +72,6 @@ def find_original_tweet(df2_indexed, rt_user_id, text):
     # Extract text after first ": " (safer version you requested earlier)
     colon_pos = text.find(': ')
     extracted_text = text[colon_pos + 2: colon_pos + 102] if colon_pos != -1 else text[:100]
-
     try:
         # Get all tweets by this user (fast O(1))
         candidates = df2_indexed.loc[rt_user_id]
@@ -76,7 +81,6 @@ def find_original_tweet(df2_indexed, rt_user_id, text):
             candidates = candidates.to_frame().T
 
         original_tweet = candidates[candidates['text'].str.contains(extracted_text, regex=False)]
-
         return original_tweet
 
     except KeyError:
@@ -96,19 +100,25 @@ def craft_destination_row(original_tweet, retweet, users):
     #make a copy of the row that is the retweet, add the missing columns in destination and recalculate
     #the value that change, like user_id_count. The rest remain the same
     aux = retweet.copy()
-    for col in missing_columns:
-        if isinstance(original_tweet, pd.DataFrame):
-            aux[col] = original_tweet[col].iloc[0]
-        else:
-            aux[col] = original_tweet[col]
-    result = get_user_id_count(users, retweet['user_id'])
-    aux['user_id_count'] = -1 if result is None else result
+    try:
+        for col in missing_columns:
+            if isinstance(original_tweet, pd.DataFrame):
+                aux[col] = original_tweet[col].iloc[0]
+            else:
+                aux[col] = original_tweet[col]
+        result = get_user_id_count(users, retweet['user_id'])
+        aux['user_id_tweets_count'] = -1 if result is None else result
+    except Exception as e:
+        print(f"Error crafting destination row for retweet ID {retweet['id']}: {e}")
+        print(f"Missed con column {col}")
+        aux['user_id_tweets_count'] = -1
+        result = None
     #debuging lines
     #if result != None:
         #print(aux)
     return(aux, result)
 
-def transfer_RTed_tweets(df, df2, users, df2_indexed):
+def transfer_RTed_tweets(df_withrts, df_without_rts, users):
     #debug/logging vars
     # missing user ids are those users who haven't been found at the users df
     # original_tweet_not_found contains the RTs ids whose original tweet haven't been found
@@ -116,7 +126,8 @@ def transfer_RTed_tweets(df, df2, users, df2_indexed):
     missing_user_ids = []
     original_tweet_not_found = []
     #first identify the RTs in origin (df)
-    retweets = df[(df['rt_user_id'] != -1) & (df['lang'].isin(['en', 'es']))]
+    retweets = df_withrts[(df_withrts['rt_user_id'] != -1) & (df_withrts['lang'].isin(['en', 'es']))]
+    retweets = retweets.head(100)
     #list of new rows to insert
     new_rows = []
     #iter through tweets and insert in destination (df2)
@@ -126,7 +137,7 @@ def transfer_RTed_tweets(df, df2, users, df2_indexed):
             pbar.update(1)
             row = row[1]
             #find original tweet if that RT
-            original_tweet = find_original_tweet(df2_indexed, row['rt_user_id'], row['text'])
+            original_tweet = find_original_tweet(_global_indexed_df2, row['rt_user_id'], row['text'])
             if original_tweet.empty:
                 original_tweet_not_found.append(row['id'])
                 continue
@@ -139,14 +150,10 @@ def transfer_RTed_tweets(df, df2, users, df2_indexed):
             else:
                 missing_user_ids.append(row['user_id'])
             #print(original_tweet)
-    df2 = pd.concat([df2, pd.DataFrame(new_rows)], ignore_index=True)
-
+    df_without_rts = pd.concat([df_without_rts, pd.DataFrame(new_rows)], ignore_index=True)
+    return(df_without_rts, missing_user_ids, original_tweet_not_found)
 def main():
-    # df, df2, users = import_files()
-    # df2_indexed = df2.set_index('user_id', drop=False)
-    # transfer_RTed_tweets(df, df2, users, df2_indexed)
-    # df2.to_csv('new_converted.csv', index=False)
-    prefix = '../data/'
+    prefix = 'data/'
     file_rts, files_norts, users_file = (
     prefix+'cop27_en_filledtext_stance.csv', 
     prefix+'dataset_23_10_en.csv', 
@@ -155,19 +162,31 @@ def main():
     df_withrts = pd.read_csv(file_rts, index_col = 0)
     df_without_rts = pd.read_csv(files_norts)
     
+    # df, df2, users = import_files()
+    # df2_indexed = df_without_rts.set_index('user_id', drop=False)
+    # transfer_RTed_tweets(df, df2, users, df2_indexed)
+    # df2.to_csv('new_converted.csv', index=False)
+    
+    users = pd.read_csv(users_file)
+    
+    global _global_df2, _global_users, _global_indexed_df2
+    _global_df2 = df_without_rts
+    _global_indexed_df2 = _global_df2.set_index('user_id', drop=False)
+    _global_users = users
     
     # df = pd.read_csv(csv_path, index_col = 0)
     # df = pd.read_csv(csv_path, index_col = 0)
-    users = pd.read_csv(users_file)
     # print(df_without_rts['created_at'])
     # print(df_withrts['created_at'])
     # print(len(df_without_rts['created_at'].isna()))
     # print(len(df_withrts['created_at'].isna()))
     
     df_without_rts, missing_users, orig_404 = transfer_RTed_tweets(df_withrts, df_without_rts, users)
+    df_without_rts.to_csv(prefix+'dataset_23_10_en_extended3.csv', index=False)
+    
     # try:
-        # write_logs(missing_users, orig_404)
+    #     write_logs(missing_users, orig_404)
     # except:
-        # print('Error writing log files')
+    #     print('Error writing log files')
         
 main()

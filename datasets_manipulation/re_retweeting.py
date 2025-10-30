@@ -17,15 +17,15 @@ _global_missing_columns = {
                            'pyemotion',
                            'pysentimiento'}
 # --- worker initializer to set globals ---
-def _init_worker(df2, users):
+def _init_worker(df_without_rts, users):
     global _global_df2, _global_users, _global_indexed_df2
-    _global_df2 = df2
+    _global_df2 = df_without_rts
     _global_indexed_df2 = _global_df2.set_index('user_id', drop=False)
     _global_users = users
 
 # --- worker function that pulls from queue ---
-def worker(task_queue: Queue, result_queue: Queue, df2, users):
-    _init_worker(df2, users)  # initialize globals for this worker
+def worker(task_queue: Queue, result_queue: Queue, df_without_rts, users):
+    _init_worker(df_without_rts, users)  # initialize globals for this worker
 
     while True:
         row = task_queue.get()
@@ -85,7 +85,7 @@ def find_original_tweet(rt_user_id, text):
         original_tweet = candidates[candidates['text'].str.contains(extracted_text, regex=False)]
         return original_tweet
     except KeyError:
-        print(f"Original tweet not found for RT user {rt_user_id}")
+        # print(f"Original tweet not found for RT user {rt_user_id}")
         return pd.DataFrame()
 
 def get_user_id_count(users, user_id):
@@ -132,10 +132,11 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
     if workers is None:
         workers = cpu_count()
 
-    # retweets = df_withhrts[(df_withhrts['rt_user_id'].notna()) & (df_withhrts['lang'].isin(['en', 'es']))]
+    retweets = df_withhrts[(df_withhrts['rt_user_id'].notna()) & (df_withhrts['lang'].isin(['en', 'es']))]
+    # retweets = retweets.head(100)
     # retweets = df_withhrts[df_withhrts['is_rt'] & (df_withhrts['lang'].isin(['en', 'es']))]
-    df_withhrts['is_rt'] = df_withhrts.apply(is_rt, axis=1)
-    retweets = df_withhrts[df_withhrts['is_rt'] == True]
+    # df_withhrts['is_rt'] = df_withhrts.apply(is_rt, axis=1)
+    # retweets = df_withhrts[df_withhrts['is_rt'] == True]
     
     total_tasks = len(retweets)
     task_queue = Queue(maxsize=workers * 2)
@@ -212,14 +213,19 @@ def write_logs(missing_users, tweet_404):
 
 def main():
     prefix = '../data/'
+    # file_rts, files_norts, users_file = (
+    # prefix+'cop27_en_filledtext_stance.csv', 
+    # prefix+'dataset_23_10_en.csv', 
+    # prefix+'usuarios_en_complete.csv')
+    
     file_rts, files_norts, users_file = (
-    prefix+'cop27_en_filledtext_stance.csv', 
-    prefix+'dataset_23_10_en.csv', 
-    prefix+'usuarios_en_complete.csv')
+    prefix+'cop27_es_filledtext_stance.csv', 
+    prefix+'es_stance_emotions_nort.csv', 
+    prefix+'usuarios_es_complete.csv')
+    
     # df_withrts, df_without_rts= import_files(file_rts,  files_norts)
     df_withrts = pd.read_csv(file_rts, index_col = 0)
     df_without_rts = pd.read_csv(files_norts)
-    
     
     # df = pd.read_csv(csv_path, index_col = 0)
     # df = pd.read_csv(csv_path, index_col = 0)
@@ -235,7 +241,8 @@ def main():
     except:
         print('Error writing log files')
     
-    df_without_rts.to_csv(prefix+'dataset_23_10_en_extended.csv', index=False)
+    df_without_rts['rt_user_id'] = df_without_rts['rt_user_id'].fillna(value=-1)
+    df_without_rts.to_csv(prefix+'dataset_23_10_es_extended.csv', index=False)
 
 if __name__ == "__main__":
     main()
