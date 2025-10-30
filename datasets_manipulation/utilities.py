@@ -92,7 +92,9 @@ def _is_rt(rt_user_id: str, text: str) -> bool:
     rt: bool = False
     if (rt_user_id != "" and
             not pd.isna(rt_user_id) and
-            not pd.isnull(rt_user_id)):
+            not pd.isnull(rt_user_id) and
+            int(rt_user_id) != -1
+            ):
 
         rt = True
 
