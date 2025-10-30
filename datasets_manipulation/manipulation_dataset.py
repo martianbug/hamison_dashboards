@@ -1,10 +1,9 @@
 #%%
 import pandas as pd
 
-DATASET = '../data/dataset_23_10_extended'
+DATASET = '../data/dataset_23_10_en_extended'
 # DATASET += '16_10_withoutrts'
 df = pd.read_csv(DATASET + '.csv')
-
 #%%
 sent_dict = {'NEG': -1,
              'NEU': 0,
@@ -14,6 +13,7 @@ df['pysentimiento'] = df['pysentimiento'].map(sent_dict)
 #%%
 user_id_counts = df['user_id'].value_counts()
 NEW_COLUMN = 'user_id_tweets_count'
+df['rt_user_id'].fillna(-1, inplace=True)
 
 df[NEW_COLUMN] = df['user_id'].map(user_id_counts)
 
