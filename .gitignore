@@ -8,4 +8,4 @@ secrets.txt
 *.zip
 *.safetensors
 *.pkl
-
+*.njdson
