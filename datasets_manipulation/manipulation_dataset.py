@@ -2,8 +2,10 @@
 import pandas as pd
 from utilities import is_rt
 
-DATASET = '../data/dataset_30_10_es_extended'
-# DATASET += '16_10_withoutrts'
+DATASET = '../data/en_stance_emotions_nort'
+DATASET_json = '../data/objectives_cop27_full_en_20.json'
+
+df_es_ob = pd.read_json(DATASET_json)
 df = pd.read_csv(DATASET + '.csv')
 
 #%%

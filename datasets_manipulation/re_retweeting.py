@@ -219,9 +219,9 @@ def main():
     # prefix+'usuarios_en_complete.csv')
     
     file_rts, files_norts, users_file = (
-    prefix+'cop27_es_filledtext_stance.csv', 
-    prefix+'es_stance_emotions_nort.csv', 
-    prefix+'usuarios_es_complete.csv')
+    prefix+'cop27_en_filledtext_stance.csv', 
+    prefix+'dataset_3_11_en.csv',   
+    prefix+'usuarios_en_complete.csv')
     
     # df_withrts, df_without_rts= import_files(file_rts,  files_norts)
     df_withrts = pd.read_csv(file_rts, index_col = 0)
@@ -242,7 +242,7 @@ def main():
         print('Error writing log files')
     
     df_without_rts['rt_user_id'] = df_without_rts['rt_user_id'].fillna(value=-1)
-    df_without_rts.to_csv(prefix+'dataset_23_10_es_extended.csv', index=False)
+    df_without_rts.to_csv(prefix+'dataset_3_11_extended_en.csv', index=False)
 
 if __name__ == "__main__":
     main()
