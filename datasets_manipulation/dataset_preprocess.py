@@ -7,19 +7,22 @@ DATASET_json = '../data/objectives_cop27_full_en_20.json'
 
 df_es_ob = pd.read_json(DATASET_json)
 df = pd.read_csv(DATASET + '.csv')
-
 #%%
 df['is_rt'] = df.apply(is_rt, axis=1)
+
 sent_dict = {'NEG': -1,
              'NEU': 0,
              'POS': 1}
 
+
 df['pysentimiento'] = df['pysentimiento'].map(sent_dict)
-#%%
 user_id_counts = df['user_id'].value_counts()
+
 NEW_COLUMN = 'user_id_tweets_count'
+df['rt_user_id'].fillna(-1, inplace=True)
 
 df[NEW_COLUMN] = df['user_id'].map(user_id_counts)
+df['hashtags'] = df['hashtags'].apply(lambda x: x.upper()) 
 
 df.to_csv(DATASET + '.csv', index=False)
 
