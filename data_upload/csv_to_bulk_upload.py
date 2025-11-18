@@ -12,9 +12,9 @@ def convert_value(value):
     except ValueError:
         return value
 
-csv_file = "../data/dataset_23_10.csv"
-json_file = "dataset_23_10.json"
-index_name = "tweets_23_10"
+csv_file = "../data/dataset_23_10_en_extended2.csv"
+json_file = "dataset_30_10_en.json"
+index_name = "tweets_en"
 
 # sino al crear el índice en Elasticsearch. Aquí solo defines los datos y el índice destino.
 # Si quieres definir el mapping, debes hacerlo antes de cargar los datos, usando la API de Elasticsearch.
@@ -31,7 +31,7 @@ mapping = {
             "type": "keyword"
           }
         }
-      }
+      },
     }
     }
 }
@@ -42,8 +42,6 @@ with open(csv_file, "r", encoding="utf-8") as f_csv, open(json_file, "w", encodi
     for row in reader:
         # Convert each value to int/float if possible
         converted_row = {k: convert_value(v) for k, v in row.items()}
-        
-        
         action = {
             "index": {
             "_index": index_name,
@@ -53,9 +51,7 @@ with open(csv_file, "r", encoding="utf-8") as f_csv, open(json_file, "w", encodi
         f_json.write(json.dumps(action) + "\n")
         f_json.write(json.dumps(converted_row, ensure_ascii=False) + "\n")
         
-
 #%% Divide bulk file        
-
 lines_per_file = 10000  # 5000 documentos
 outname_part = "tweets_part_"
 with open(json_file, "r", encoding="utf-8") as f:
