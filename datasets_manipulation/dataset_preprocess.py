@@ -1,13 +1,26 @@
-#%%
+#%% LOAD DATA
 import pandas as pd
 from utilities import is_rt
+import ast
+import re
+
+def parse_hashtags(x):
+    if pd.isna(x) or x in ("", "[]", "nan", "None"):
+        return []  # lista vacía
+    try:
+        return ast.literal_eval(x)
+    except:
+        return []
+
+def clean_and_upper_list(x):
+    if not isinstance(x, list):
+        return []
+    return [re.sub(r'[^A-Z0-9_]', '', elem.upper()) for elem in x]
+
 
 DATASET = '../data/en_stance_emotions_nort'
-DATASET_json = '../data/objectives_cop27_full_en_20.json'
-
-df_es_ob = pd.read_json(DATASET_json)
 df = pd.read_csv(DATASET + '.csv')
-#%%
+#%% APPLY PREPROCESSING FUNCTIONS
 df['is_rt'] = df.apply(is_rt, axis=1)
 
 sent_dict = {'NEG': -1,
@@ -17,21 +30,14 @@ sent_dict = {'NEG': -1,
 
 df['pysentimiento'] = df['pysentimiento'].map(sent_dict)
 user_id_counts = df['user_id'].value_counts()
-
-NEW_COLUMN = 'user_id_tweets_count'
 df['rt_user_id'].fillna(-1, inplace=True)
 
+NEW_COLUMN = 'user_id_tweets_count'
+
 df[NEW_COLUMN] = df['user_id'].map(user_id_counts)
-df['hashtags'] = df['hashtags'].apply(lambda x: x.upper()) 
 
-df.to_csv(DATASET + '.csv', index=False)
+df["hashtags"] = df["hashtags"].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
+df["hashtags"] = df["hashtags"].apply(lambda x: ['#' + elem.upper() for elem in x] if isinstance(x, list) else x)
+df["hashtags"] = df["hashtags"].apply(clean_and_upper_list)
 
-# df.to_csv(NAME + '_with_'+NEW_COLUMN +'.csv', index=0)
-# df['text_preprocessed'] = df['text'].apply(preprocess)
-# Crear la nueva columna con la longitud de caracteres después del preprocesado
-# df['text_preprocessed_length'] = df['text'].apply(preprocess).apply(len)
-# df['text_original_length'] = df['text'].apply(len)
-# df['text_length_ratio'] = df['text_preprocessed_length'] / df['text_original_length']
-# (ratio tiempo_de_vida:numero_tweets)
-
-#%%
+df.to_csv(DATASET + '_processed' + '.csv', index=False)
