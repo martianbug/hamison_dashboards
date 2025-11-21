@@ -5,10 +5,6 @@ from tqdm import tqdm
 import os
 
 missing_columns = {'user_id_tweets_count', 
-                #    'text_length', 
-                #    'text_preprocessed_length',
-                #    'text_original_length', 
-                #    'text_length_ratio', 
                    'pyemotion', 
                    'pysentimiento'}
 
@@ -16,58 +12,11 @@ _global_df2 = None
 _global_users = None
 _global_indexed_df2 = None
 
-
-
-def load_or_create_pickle(csv_path, pickle_path=None, force_update=False):
-    """
-    Load DataFrame from pickle if available; otherwise from CSV and save as pickle.
-    
-    Args:
-        csv_path (str): Path to the original CSV file.
-        pickle_path (str): Path to the pickle file (defaults to same name as CSV with .pkl).
-        force_update (bool): If True, always reload from CSV and overwrite pickle.
-
-    Returns:
-        pd.DataFrame: Loaded DataFrame
-    """
-    if pickle_path is None:
-        pickle_path = os.path.splitext(csv_path)[0] + ".pkl"
-
-    # Determine if pickle exists and is up-to-date
-    pickle_exists = os.path.exists(pickle_path)
-    csv_newer = False
-
-    if pickle_exists:
-        csv_mtime = os.path.getmtime(csv_path)
-        pickle_mtime = os.path.getmtime(pickle_path)
-        csv_newer = csv_mtime > pickle_mtime  # CSV modified after pickle
-
-    # Decide loading strategy
-    if force_update or not pickle_exists or csv_newer:
-        print(f"Loading from CSV: {csv_path}")
-        df = pd.read_csv(csv_path)
-        print(f"Saving pickle: {pickle_path}")
-        df.to_pickle(pickle_path)
-    else:
-        print(f"Loading from Pickle: {pickle_path}")
-        df = pd.read_pickle(pickle_path)
-
-    return df
-
-def import_files():
-    #df = pd.read_csv('big_files/dataset_26_05_sb2.csv')
-    #df2 = pd.read_csv('big_files/dataset_06_05_sb2.csv')
-    #users = pd.read_csv('big_files/usuarios.csv')
-    df = load_or_create_pickle('big_files/dataset_26_05_sb2.csv')
-    df2 = load_or_create_pickle('big_files/dataset_06_05_sb2.csv')
-    users = load_or_create_pickle('big_files/usuarios.csv')
-    return(df, df2, users)
-'''
 def find_original_tweet(df2, rt_user_id, text):
     extracted_text = text.split(': ')[1][0:100]
     original_tweet = df2[(df2['user_id'] ==  rt_user_id) & (df2['text'].str.contains(extracted_text, regex=False))]
     return(original_tweet)
-    '''
+
 def find_original_tweet(df2_indexed, rt_user_id, text):
     # Extract text after first ": " (safer version you requested earlier)
     colon_pos = text.find(': ')
@@ -158,16 +107,16 @@ def main():
     prefix+'cop27_en_filledtext_stance.csv', 
     prefix+'dataset_23_10_en.csv', 
     prefix+'usuarios_en_complete.csv')
-    # df_withrts, df_without_rts= import_files(file_rts,  files_norts)
+    
     df_withrts = pd.read_csv(file_rts, index_col = 0)
     df_without_rts = pd.read_csv(files_norts)
+    users = pd.read_csv(users_file)
     
     # df, df2, users = import_files()
     # df2_indexed = df_without_rts.set_index('user_id', drop=False)
     # transfer_RTed_tweets(df, df2, users, df2_indexed)
     # df2.to_csv('new_converted.csv', index=False)
     
-    users = pd.read_csv(users_file)
     
     global _global_df2, _global_users, _global_indexed_df2
     _global_df2 = df_without_rts
