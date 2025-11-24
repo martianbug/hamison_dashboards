@@ -1,6 +1,6 @@
 from pysentimiento import create_analyzer
 
-from utilities import preprocess
+from data_process.utilities import preprocess
 """
 Emotion Analysis in English
 """
