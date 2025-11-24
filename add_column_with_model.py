@@ -6,7 +6,7 @@ from utilities import is_rt
 import importlib
 
 def _get_classifier(task):
-    module_name = f"classification_{task}"
+    module_name = f"classification.classification_{task}"
     func_name = f"classify_{task}"
     try:
         module = importlib.import_module(module_name)
@@ -22,7 +22,7 @@ def process_text(text, lang):
 TASK = 'pysentimiento'  # 'pyemotion','stance', 'propaganda'
 classifier = _get_classifier(TASK)
 
-DATASET = '../data/cop27_en_filledtext_stance'
+DATASET = 'data/cop27_en_filledtext_stance'
 CSV = '.csv'
 
 dataset_df = pd.read_csv(DATASET + CSV, index_col=0)
