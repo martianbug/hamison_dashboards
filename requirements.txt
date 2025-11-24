@@ -1,13 +1,10 @@
-pyvis
 transformers
 scipy
-pandas
 protobuf
 joblib
 sentencepiece
 hf_xet
 matplotlib
-pyvis
 torch
 torchvision
 torchaudio
