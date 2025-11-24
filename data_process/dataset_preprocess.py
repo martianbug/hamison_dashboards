@@ -17,7 +17,7 @@ Contains small helpers:
 """
 
 import pandas as pd
-from utilities import is_rt
+from data_process.utilities import is_rt
 import ast
 import re
 

@@ -3,7 +3,7 @@ This repository contains scripts used for the Hamison Project (https://nlp.uned.
 
 * add_column_with_model.py uses language sentiment and emotion models to classify tweets and add a column to the dataset.
 
-* Scripts that manipulate, pre and post-process the data:
+* Scripts that manipulate, pre and post-process the data (inside data_process folder):
     * dataset_preprocess.py normalizes and pre-process datyaframes for the analysis.
     * create_users_df creates a df with active users and their metadata and saves it to a .csv file, later used by re-retweeting 
     * re-retweeting copy certaing column values from a df without retweets and processed by the model to the df with retweets (see doc)

@@ -35,7 +35,7 @@ import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Process, Queue, cpu_count
 
-from utilities import is_rt
+from data_process.utilities import is_rt
 _global_df2 = None
 _global_users = None
 _global_indexed_df2 = None

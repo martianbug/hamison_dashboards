@@ -1,6 +1,6 @@
 from pysentimiento import create_analyzer
 
-from utilities import preprocess
+from data_process.utilities import preprocess
 
 analyzer_es = create_analyzer(task="sentiment", lang="es")
 analyzer_en = create_analyzer(task="sentiment", lang="en")
@@ -11,5 +11,4 @@ def classify_pysentimiento(text: str, lang = 'en'):
         output = analyzer_en.predict(text)
     else:   
         output = analyzer_es.predict(text)
-    # print(text, output.output)
     return output.output
