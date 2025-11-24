@@ -4,6 +4,8 @@ from joblib import Parallel, delayed
 from tqdm_joblib import tqdm_joblib
 from utilities import is_rt
 import importlib
+import sys
+sys.path.append('..')
 
 def _get_classifier(task):
     module_name = f"classification.classification_{task}"
@@ -22,7 +24,7 @@ def process_text(text, lang):
 TASK = 'pysentimiento'  # 'pyemotion','stance', 'propaganda'
 classifier = _get_classifier(TASK)
 
-DATASET = 'data/cop27_en_filledtext_stance'
+DATASET = '../data/sample_data'
 CSV = '.csv'
 
 dataset_df = pd.read_csv(DATASET + CSV, index_col=0)
@@ -41,7 +43,6 @@ dataset_df_to_processs = dataset_df[~dataset_df['is_rt']]
 #%% SECUENCIAL
 tqdm.pandas()
 dataset_df_to_processs[TASK] = dataset_df_to_processs.progress_apply(lambda x: process_text(x[TEXT_COLUMN], x[LANG_COLUMN]), axis=1)
-
 
 # %% PARALLEL PROCESSING
 # with tqdm_joblib(tqdm(desc="Processing rows", total=len(dataset_df_to_processs))):

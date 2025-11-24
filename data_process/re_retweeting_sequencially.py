@@ -1,9 +1,12 @@
-# %%
+"""
+Script to transfer retweeted tweets from one dataset to another,
+filling in missing information.
 
+Same as re_retweeting.py but sequentially, without multiprocessing. 
+"""
 import pandas as pd
 from tqdm import tqdm 
 import os
-
 missing_columns = {'user_id_tweets_count', 
                    'pyemotion', 
                    'pysentimiento'}
@@ -18,14 +21,10 @@ def find_original_tweet(df2, rt_user_id, text):
     return(original_tweet)
 
 def find_original_tweet(df2_indexed, rt_user_id, text):
-    # Extract text after first ": " (safer version you requested earlier)
     colon_pos = text.find(': ')
     extracted_text = text[colon_pos + 2: colon_pos + 102] if colon_pos != -1 else text[:100]
     try:
-        # Get all tweets by this user (fast O(1))
         candidates = df2_indexed.loc[rt_user_id]
-
-        # Filter by extracted text
         if isinstance(candidates, pd.Series):  # Single row result
             candidates = candidates.to_frame().T
 
@@ -112,30 +111,12 @@ def main():
     df_without_rts = pd.read_csv(files_norts)
     users = pd.read_csv(users_file)
     
-    # df, df2, users = import_files()
-    # df2_indexed = df_without_rts.set_index('user_id', drop=False)
-    # transfer_RTed_tweets(df, df2, users, df2_indexed)
-    # df2.to_csv('new_converted.csv', index=False)
-    
-    
     global _global_df2, _global_users, _global_indexed_df2
     _global_df2 = df_without_rts
     _global_indexed_df2 = _global_df2.set_index('user_id', drop=False)
     _global_users = users
     
-    # df = pd.read_csv(csv_path, index_col = 0)
-    # df = pd.read_csv(csv_path, index_col = 0)
-    # print(df_without_rts['created_at'])
-    # print(df_withrts['created_at'])
-    # print(len(df_without_rts['created_at'].isna()))
-    # print(len(df_withrts['created_at'].isna()))
-    
     df_without_rts, missing_users, orig_404 = transfer_RTed_tweets(df_withrts, df_without_rts, users)
     df_without_rts.to_csv(prefix+'dataset_23_10_en_extended3.csv', index=False)
-    
-    # try:
-    #     write_logs(missing_users, orig_404)
-    # except:
-    #     print('Error writing log files')
         
 main()

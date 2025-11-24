@@ -1,11 +1,7 @@
-NLP-UNED/*
 tweets*.csv
-secrets.txt
-*.csv
 *.json
 *.gexf
 *.tar
 *.zip
 *.safetensors
-*.pkl
-*.njdson
+__pycache__/
