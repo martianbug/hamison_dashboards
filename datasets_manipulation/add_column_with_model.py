@@ -19,7 +19,7 @@ def _get_classifier(task):
 def process_text(text, lang):
     return classifier(text, lang=lang)
 
-TASK = 'pysentimiento'  # 'pysentimiento','stance', 'propaganda'
+TASK = 'pysentimiento'  # 'pyemotion','stance', 'propaganda'
 classifier = _get_classifier(TASK)
 
 DATASET = '../data/cop27_en_filledtext_stance'

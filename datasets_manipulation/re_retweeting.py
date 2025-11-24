@@ -1,29 +1,55 @@
+"""re_retweeting.py
+
+Purpose:
+    Locate original tweets for retweets and copy selected column values from
+    a "no-retweets" dataframe into the retweet rows. The script:
+      - scans a dataframe that contains retweets (df_withrts),
+      - for each retweet, finds the original tweet in df_without_rts by matching
+        the original tweet text,
+      - copies a set of columns (see _global_missing_columns) from the original
+        tweet into the retweet row,
+      - fills user-level metadata (user_id_tweets_count) using a users dataframe,
+      - supports parallel processing with worker processes to speed up large datasets.
+
+Key behavior:
+    - _global_missing_columns lists columns copied from the original tweet into
+      the retweet row (e.g., 'pyemotion', 'pysentimiento', 'user_id_tweets_count').
+    - find_original_tweet searches df_without_rts (indexed by user_id) for a
+      candidate tweet whose text contains the extracted original text snippet.
+    - craft_destination_row merges values from the found original tweet into the
+      retweet row and supplies a fallback (-1) when metadata is missing.
+    - transfer_RTed_tweets_parallel orchestrates multiprocessing: it pushes tasks
+      to worker processes, collects results, appends new rows to df_without_rts,
+      and returns updated dataframe along with lists of any missing users or
+      original tweet misses (404s).
+      
+Notes:
+    - The matching strategy uses a text snippet (first ~100 characters after the
+      username prefix) and performs a substring containment check. This can lead
+      to false positives or misses if tweets are trimmed or altered.
+    - The module uses multiprocessing.Process and Queue; ensure this script is
+      executed under the typical "if __name__ == '__main__'" guard on Windows.
+      
+"""
 import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Process, Queue, cpu_count
 
 from utilities import is_rt
-
-# Globals
 _global_df2 = None
 _global_users = None
 _global_indexed_df2 = None
 _global_missing_columns = {
                         'user_id_tweets_count',
-                        #    'text_length',
-                        #    'text_preprocessed_length',
-                        #    'text_original_length',
-                        #    'text_length_ratio',
                            'pyemotion',
                            'pysentimiento'}
-# --- worker initializer to set globals ---
+
 def _init_worker(df_without_rts, users):
     global _global_df2, _global_users, _global_indexed_df2
     _global_df2 = df_without_rts
     _global_indexed_df2 = _global_df2.set_index('user_id', drop=False)
     _global_users = users
 
-# --- worker function that pulls from queue ---
 def worker(task_queue: Queue, result_queue: Queue, df_without_rts, users):
     _init_worker(df_without_rts, users)  # initialize globals for this worker
 
@@ -38,36 +64,6 @@ def worker(task_queue: Queue, result_queue: Queue, df_without_rts, users):
             # Return error as tuple for debugging
             result_queue.put((False, None, None, None))
 
-def load_or_create_pickle(csv_path, pickle_path=None, force_update=False):
-    # if pickle_path is None:
-    #     pickle_path = os.path.splitext(csv_path)[0] + ".pkl"
-
-    # pickle_exists = os.path.exists(pickle_path)
-    # csv_newer = False
-
-    # if pickle_exists:
-    #     csv_mtime = os.path.getmtime(csv_path)
-    #     pickle_mtime = os.path.getmtime(pickle_path)
-    #     csv_newer = csv_mtime > pickle_mtime
-
-    # if force_update or not pickle_exists or csv_newer:
-    print(f"Loading from CSV: {csv_path}")
-    df = pd.read_csv(csv_path, index_col = 0)
-    # print(f"Saving pickle: {pickle_path}")
-    # df.to_pickle(pickle_path)
-    # else:
-        # print(f"Loading from Pickle: {pickle_path}")
-        # df = pd.read_pickle(pickle_path)
-# 
-    return df
-
-def import_files(file_rts, files_norts=None):
-    df = load_or_create_pickle(file_rts)
-    df2 = load_or_create_pickle(files_norts)
-    
-    # users = load_or_create_pickle(users_file)
-    return df, df2 #,users 
-
 def extract_original_text(rt_text: str, max_len: int = 100) -> str:
     idx = rt_text.find(': ')
     if idx == -1:
@@ -76,6 +72,12 @@ def extract_original_text(rt_text: str, max_len: int = 100) -> str:
     return rt_text[start:start + max_len]
 
 def find_original_tweet(rt_user_id, text):
+    """Find original tweet(s) for a retweet.
+
+    Extracts an approximate original-tweet snippet from the retweet text and
+    looks up tweets by rt_user_id in the indexed df_without_rts. Returns a
+    DataFrame (possibly empty) with matching original tweet(s).
+    """
     colon_pos = text.find(': ')
     extracted_text = text[colon_pos + 2: colon_pos + 102] if colon_pos != -1 else text[:100]
     try:
@@ -96,6 +98,12 @@ def get_user_id_count(users, user_id):
         return None
 
 def craft_destination_row(original_tweet, retweet, users):
+    """Create a retweet row enriched with columns copied from the original tweet.
+
+    Copies columns listed in _global_missing_columns from original_tweet into
+    a copy of retweet. Also fills 'user_id_tweets_count' using the users df.
+    Returns the enriched row (pandas Series).
+    """
     aux = retweet.copy()
     try:
         for col in _global_missing_columns:
@@ -129,15 +137,18 @@ def _process_retweet(row):
         return (False, None, row['id'], None)
 
 def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=None, chunk_size=1000):
+    """Parallel transfer of original-tweet column values into retweet rows.
+
+    Scans df_withhrts for retweets (by rt_user_id and language filter), sends
+    each retweet to worker processes that locate the original tweet in
+    df_without_rts and build an enriched row. Returns the updated df_without_rts
+    (with appended enriched retweets), list of missing user_ids, and list of
+    retweet ids for which the original tweet was not found.
+    """
     if workers is None:
         workers = cpu_count()
 
     retweets = df_withhrts[(df_withhrts['rt_user_id'].notna()) & (df_withhrts['lang'].isin(['en', 'es']))]
-    # retweets = retweets.head(100)
-    # retweets = df_withhrts[df_withhrts['is_rt'] & (df_withhrts['lang'].isin(['en', 'es']))]
-    # df_withhrts['is_rt'] = df_withhrts.apply(is_rt, axis=1)
-    # retweets = df_withhrts[df_withhrts['is_rt'] == True]
-    
     total_tasks = len(retweets)
     task_queue = Queue(maxsize=workers * 2)
     result_queue = Queue()
@@ -148,20 +159,17 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
         p.start()
         processes.append(p)
 
-    # Feed tasks
     successful_rts = 0
     missing_user_ids = []
     original_tweet_not_found = []
     new_rows = []
 
-    # Convert to dict to reduce serialization cost
-    retweet_dicts = (row.to_dict() for _, row in retweets.iterrows())
+    retweet_dicts = (row.to_dict() for _, row in retweets.iterrows()) # Convert to dict to reduce serialization cost
 
     with tqdm(total=total_tasks) as pbar:
         for row_dict in retweet_dicts:
             task_queue.put(row_dict)
 
-            # Collect results as soon as they are available
             while not result_queue.empty():
                 success, missing_user, orig_404, new_row = result_queue.get()
                 if success and new_row is not None:
@@ -175,11 +183,9 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
                 pbar.update(1)
                 pbar.set_description(f"Success: {successful_rts} | Missing users: {len(missing_user_ids)} | 404: {len(original_tweet_not_found)}")
 
-    # Send poison pills
     for _ in range(workers):
         task_queue.put(None)
 
-    # Drain remaining results
     processed = pbar.n
     while processed < total_tasks:
         success, missing_user, orig_404, new_row = result_queue.get()
@@ -198,7 +204,6 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
     for p in processes:
         p.join()
 
-    # Combine results
     if new_rows:
         df_without_rts = pd.concat([df_without_rts, pd.DataFrame(new_rows)], ignore_index=True)
 
@@ -213,28 +218,15 @@ def write_logs(missing_users, tweet_404):
 
 def main():
     prefix = '../data/'
-    # file_rts, files_norts, users_file = (
-    # prefix+'cop27_en_filledtext_stance.csv', 
-    # prefix+'dataset_23_10_en.csv', 
-    # prefix+'usuarios_en_complete.csv')
-    
     file_rts, files_norts, users_file = (
     prefix+'cop27_en_filledtext_stance.csv', 
     prefix+'dataset_3_11_en.csv',   
     prefix+'usuarios_en_complete.csv')
     
-    # df_withrts, df_without_rts= import_files(file_rts,  files_norts)
     df_withrts = pd.read_csv(file_rts, index_col = 0)
     df_without_rts = pd.read_csv(files_norts)
     
-    # df = pd.read_csv(csv_path, index_col = 0)
-    # df = pd.read_csv(csv_path, index_col = 0)
     users = pd.read_csv(users_file)
-    # print(df_without_rts['created_at'])
-    # print(df_withrts['created_at'])
-    # print(len(df_without_rts['created_at'].isna()))
-    # print(len(df_withrts['created_at'].isna()))
-    
     df_without_rts, missing_users, orig_404 = transfer_RTed_tweets_parallel(df_withrts, df_without_rts, users, workers=8)
     try:
         write_logs(missing_users, orig_404)
