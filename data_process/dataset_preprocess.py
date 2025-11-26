@@ -16,8 +16,9 @@ Contains small helpers:
 - clean_and_lower_list: normalize list elements to lowercase hashtag tokens.
 """
 
+import unicodedata
 import pandas as pd
-from data_process.utilities import is_rt
+from utilities import is_rt
 import ast
 import re
 
@@ -29,13 +30,31 @@ def parse_hashtags(x):
     except:
         return []
 
+def strip_accents(text: str) -> str:
+    # Normalize text to NFKD form → accents become separate characters
+    text_nfkd = unicodedata.normalize('NFKD', text)
+    # Keep only characters that are not combining marks (accents)
+    return "".join(c for c in text_nfkd if not unicodedata.combining(c))
+
 def clean_and_lower_list(x):
     if not isinstance(x, list):
         return []
-    return [re.sub(r'[^a-z0-9_]', '', elem.lower()) for elem in x]
 
-DATASET = 'data/en_stance_emotions_nort_pyemotion'
+    cleaned_list = []
+    for elem in x:
+        if not isinstance(elem, str):
+            continue
+
+        no_accents = strip_accents(elem)       # remove accents
+        lowered = no_accents.lower()           # lower case
+        cleaned = re.sub(r'[^a-z0-9_]', '', lowered)  # remove unwanted chars
+        cleaned_list.append(cleaned)
+
+    return cleaned_list
+
+DATASET = '../data/en_stance_emotions_nort_pyemotion'
 df = pd.read_csv(DATASET + '.csv')
+
 
 #%% APPLY PREPROCESSING FUNCTIONS
 df['is_rt'] = df.apply(is_rt, axis=1) # It should be already there
@@ -45,9 +64,9 @@ sent_dict = {'NEG': -1,
              'POS': 1}
 
 df['pysentimiento'] = df['pysentimiento'].map(sent_dict)
+
 user_id_counts = df['user_id'].value_counts()
 df['rt_user_id'].fillna(-1, inplace=True)
-
 NEW_COLUMN = 'user_id_tweets_count'
 df[NEW_COLUMN] = df['user_id'].map(user_id_counts)
 
