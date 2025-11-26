@@ -18,7 +18,7 @@ If you desire to use these scripts to obtain the final json bulk files to upload
 1. Run add_column_with_model.py, by changing de DATASET variable with your filename. Also specify which model you want to apply and the language.
     IMPORTANT: Only original tweets are processed in order to accelerate the process, to be later re-retweeted with re-retweeting script. You can disable this if you wan to process all tweets.
 
-This script will save a new csv file with the TASK on its name.
+    This script will save a new csv file with the TASK on its name.
 
 2. Once you have run the model/s to your csv, run data_preprocess.py to
 homogeneize text and columns.
@@ -31,12 +31,11 @@ This will apply these new columns values to the RTs, by finding the original twe
 5. Once you have your final information to upload to OpenSearch, finally uploader_csv_to_json_to_opensearch.py can be run to upload it.
 
 
-
 ## Data
 The data used for this project are the tweets deployed during the 'COP27' Climate convention. They all include hashtags like "#COP27" to filter by this particular event in search for misinformation patterns. This data was extracted using the [Twitter API](https://docs.x.com/fundamentals/developer-apps#overview)
 
 ## Dependencies
-Use `pip install -r requirements.txt' to automatically install all dependencies used by the different parts of this repository. Apart from them, data_explorer repository by @alpgarcia (https://github.com/alpgarcia/data_explorer/tree/main) is used for some functions. 
+Use `pip install -r requirements.txt' to automatically install all dependencies used by the different parts of this repository. Apart from them, [data_explorer](https://github.com/alpgarcia/data_explorer/tree/main) repository by @alpgarcia was used for some functions. 
 
 ## Acknowledgements
 This work was supported by the HAMiSoN project grant **CHIST-ERA-21-OSNEM-002**, **AEI PCI2022-135026-2** (MCIN/AEI/10.13039/501100011033 and EU “NextGenerationEU”/PRTR).
