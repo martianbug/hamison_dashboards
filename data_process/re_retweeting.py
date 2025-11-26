@@ -220,13 +220,14 @@ def main():
     prefix = '../data/'
     file_rts, files_norts, users_file = (
     prefix+'cop27_en_filledtext_stance.csv', 
-    prefix+'dataset_3_11_en.csv',   
+    prefix+'en_stance_emotions_nort_pyemotion.csv',   
     prefix+'usuarios_en_complete.csv')
     
     df_withrts = pd.read_csv(file_rts, index_col = 0)
     df_without_rts = pd.read_csv(files_norts)
     
     users = pd.read_csv(users_file)
+    
     df_without_rts, missing_users, orig_404 = transfer_RTed_tweets_parallel(df_withrts, df_without_rts, users, workers=8)
     try:
         write_logs(missing_users, orig_404)

@@ -34,11 +34,11 @@ def clean_and_lower_list(x):
         return []
     return [re.sub(r'[^a-z0-9_]', '', elem.lower()) for elem in x]
 
-DATASET = 'data/en_stance_emotions_nort'
+DATASET = 'data/en_stance_emotions_nort_pyemotion'
 df = pd.read_csv(DATASET + '.csv')
 
 #%% APPLY PREPROCESSING FUNCTIONS
-df['is_rt'] = df.apply(is_rt, axis=1)
+df['is_rt'] = df.apply(is_rt, axis=1) # It should be already there
 
 sent_dict = {'NEG': -1,
              'NEU': 0,

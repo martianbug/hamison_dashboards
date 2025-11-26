@@ -27,22 +27,24 @@ classifier = _get_classifier(TASK)
 DATASET = '../data/sample_data'
 CSV = '.csv'
 
-dataset_df = pd.read_csv(DATASET + CSV, index_col=0)
-
 TEXT_COLUMN = 'text'
 LANG_COLUMN = 'lang'
+ONLY_ORIGINAL_TWEETS = True
 
+dataset_df = pd.read_csv(DATASET + CSV, index_col=0)
 # Keeping only eng and/or spa columns
 ALLOWED_VALUES = ['en']#, 'en']
 
 dataset_df = dataset_df[dataset_df['lang'].isin(ALLOWED_VALUES)]
-dataset_df['is_rt'] = dataset_df.apply(is_rt, axis=1)
 
-dataset_df_to_processs = dataset_df[~dataset_df['is_rt']]
+#KEEPING ONLY ORIGINAL TWEETS
+if ONLY_ORIGINAL_TWEETS:
+    dataset_df['is_rt'] = dataset_df.apply(is_rt, axis=1)
+    dataset_df = dataset_df[~dataset_df['is_rt']]
 
 #%% SECUENCIAL
 tqdm.pandas()
-dataset_df_to_processs[TASK] = dataset_df_to_processs.progress_apply(lambda x: process_text(x[TEXT_COLUMN], x[LANG_COLUMN]), axis=1)
+dataset_df[TASK] = dataset_df.progress_apply(lambda x: process_text(x[TEXT_COLUMN], x[LANG_COLUMN]), axis=1)
 
 # %% PARALLEL PROCESSING
 # with tqdm_joblib(tqdm(desc="Processing rows", total=len(dataset_df_to_processs))):
@@ -53,5 +55,6 @@ dataset_df_to_processs[TASK] = dataset_df_to_processs.progress_apply(lambda x: p
 
 #%% SAVE FILE
 out_file = DATASET+ '_' + TASK + CSV 
-dataset_df_to_processs.to_csv(out_file, index=False)
-print(f'Dataset saved at {out_file} \n {dataset_df_to_processs.head()}')
+dataset_df.to_csv(out_file, index=False)
+
+print(f'Dataset saved at {out_file} \n {dataset_df.head()}')
