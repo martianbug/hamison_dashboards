@@ -4,7 +4,7 @@ This repository contains scripts used for the [Hamison Project](https://nlp.uned
 * add_column_with_model.py uses language sentiment and emotion models to classify tweets and add a column to the dataset.
 
 * Scripts that manipulate, pre and post-process the data (inside data_process folder):
-    * dataset_preprocess.py normalizes and pre-process datyaframes for the analysis.
+    * dataset_preprocess.py normalizes and pre-process dataframes for the analysis.
     * create_users_df creates a df with active users and their metadata and saves it to a .csv file, later used by re-retweeting 
     * re-retweeting copy certaing column values from a df without retweets and processed by the model to the df with retweets (see doc)
 
@@ -25,8 +25,10 @@ homogeneize text and columns.
 
 3. Then run create_users_df.py to have a csv file containing users and some info about them. This is optional, but mandatory if you want to run re-retweeting script.
 
-4. Re-tweeting script (In case you processed only original tweets). You need to have the csv with original tweets csv and new created columns, the csv with all tweets and the users csv created in create_usres_df.
+4. Re-tweeting script (In case you processed only original tweets). You need to have the csv with original tweets csv and new created columns, the csv with all tweets and the users csv created in create_users_df.
 This will apply these new columns values to the RTs, by finding the original tweets.
+In this step some tweets can be lost due to unavailability to find the original tweet and thus to attach the labels to their RTs. Failed tweets will be stored in log files in folder 'log'.
+This can be solved by running the model on 'lost' RTs only, or on all tweets (tweets and RTs) but it can be really time/cpu consuming, depending on the amount of data.
 
 5. Once you have your final information to upload to OpenSearch, finally uploader_csv_to_json_to_opensearch.py can be run to upload it.
 

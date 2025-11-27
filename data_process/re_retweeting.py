@@ -36,6 +36,8 @@ from tqdm import tqdm
 from multiprocessing import Process, Queue, cpu_count
 
 from data_process.utilities import is_rt
+import os
+
 _global_df2 = None
 _global_users = None
 _global_indexed_df2 = None
@@ -210,6 +212,9 @@ def transfer_RTed_tweets_parallel(df_withhrts, df_without_rts, users, workers=No
     return df_without_rts, missing_user_ids, original_tweet_not_found
 
 def write_logs(missing_users, tweet_404):
+    if not os.path.exists('log'):
+        os.makedirs('log')
+    
     with open('log/missing_user_ids.txt', 'w') as file_:
         file_.write(str(missing_users))
     
